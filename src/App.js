@@ -1,13 +1,13 @@
 import React from 'react'
 import {Router, Route, Switch} from 'react-router-dom'
 import {history} from './history'
-import Privacy from './bitmex/component'
+import component from './bitmex/component'
 
 const App = () => {
   return (
     <Router history={history}>
         <Switch>
-          <Route path='/privacy' component={Privacy}/>
+          <Route path='/test' component={component}/>
         </Switch>
     </Router>
   )
