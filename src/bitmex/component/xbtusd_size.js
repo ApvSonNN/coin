@@ -14,8 +14,9 @@ const styles = theme => ({
 class App extends React.Component {
   state = {
     stop_ws: false,
-    start: moment.utc(),
-    end: moment.utc().add(1, 'minutes'),
+    start: this.props.start,
+    end: this.props.end,
+    is_first: true,
     lineChartDataSize: {
       labels: [],
       datasets: [
@@ -53,6 +54,20 @@ class App extends React.Component {
   };
 
   componentDidMount() {
+    if (this.state.is_first && this.props.is_selected) {
+      const oldBtcDataSet = this.state.lineChartDataSize.datasets[0];
+      const newBtcDataSize = { ...oldBtcDataSet };
+      newBtcDataSize.data.push(0);
+      const newChartData = {
+        ...this.state.lineChartDataSize,
+        datasets: [newBtcDataSize],
+        labels: this.state.lineChartDataSize.labels.concat(
+          this.state.start.format('YYYY-MM-DD HH:mm:ss')
+        )
+      };
+
+      this.setState({ lineChartDataSize: newChartData, is_first: false});
+    }
     this.run_ws_trade_size()
   }
 
@@ -84,7 +99,7 @@ class App extends React.Component {
     this.ws.onmessage = e => {
       let value = JSON.parse(e.data);
 
-      if (typeof value.data !== 'undefined' && value.data.length > 0 && value.data[0].symbol === 'XBTUSD') {
+      if (typeof value.data !== 'undefined' && value.data.length > 0 && value.data[0].symbol === 'XBTUSD' && this.props.is_selected) {
         value = value.data[0]
         const currentTime = moment.utc()
 
@@ -94,7 +109,7 @@ class App extends React.Component {
           if (currentTime < end ) {
             arrData.push(value)
           } else {
-            console.log('arrData', arrData)
+            // console.log('arrData', arrData)
             const buyListData = arrData.filter(function(value) {
               return value.side === 'Buy'
             }).map(a => a.size)
@@ -103,20 +118,20 @@ class App extends React.Component {
             }).map(a => a.size)
             const totalSell = sellListData.reduce((a, b) => a + b, 0)
             const totalBuy = buyListData.reduce((a, b) => a + b, 0)
-            console.log('buyListData', buyListData)
-            console.log('sellListData', sellListData)
-            console.log('totalSell', totalSell)
-            console.log('totalBuy', totalBuy)
+            // console.log('buyListData', buyListData)
+            // console.log('sellListData', sellListData)
+            // console.log('totalSell', totalSell)
+            // console.log('totalBuy', totalBuy)
             const lastSize = totalBuy - totalSell
-            console.log('lastSize', lastSize)
+            // console.log('lastSize', lastSize)
             arrData = [value]
 
             const oldBtcDataSet = this.state.lineChartDataSize.datasets[0];
             const newBtcDataSize = { ...oldBtcDataSet };
             newBtcDataSize.data.push(lastSize);
 
-            start = _.clone(currentTime)
-            end = _.clone(currentTime).add(1, 'minutes')
+            start = end.clone()
+            end = end.clone().add(1, 'minutes')
             const newChartData = {
               ...this.state.lineChartDataSize,
               datasets: [newBtcDataSize],
@@ -132,26 +147,10 @@ class App extends React.Component {
     }
   }
 
-  toggleStopWs = () => {
-    const {
-      stop_ws
-    } = this.state
-
-    if (stop_ws) {
-      this.setState({stop_ws: false})
-      this.run_ws_trade_size()
-    } else {
-      this.setState({stop_ws: true})
-      this.ws.close()
-    }
-  }
-
   render() {
     const { classes } = this.props;
     return (
       <div className={classes["chart-container"]}>
-        {this.state.stop_ws && <button className="btn btn-danger" onClick={() => this.toggleStopWs()}>Start</button>}
-        {!this.state.stop_ws && <button className="btn btn-primary" onClick={() => this.toggleStopWs()}>Stop</button>}
         <Chart
           data={this.state.lineChartDataSize}
           options={this.state.lineChartOptions}

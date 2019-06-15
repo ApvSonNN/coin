@@ -76,37 +76,26 @@ class App extends React.Component {
 
     this.ws.onmessage = e => {
       let value = JSON.parse(e.data);
+      console.log('time',moment.utc().format('YYYY-MM-DD HH:mm:ss'))
 
-      if (typeof value.data !== 'undefined' && value.data.length > 0 && value.data[0].symbol === 'XBTUSD') {
+      if (typeof value.data !== 'undefined' && value.data.length > 0 && value.data[0].symbol === 'XBTUSD' && this.props.is_selected) {
         value = value.data[0]
 
-        const oldBtcDataSet = this.state.lineChartDataPrice.datasets[0];
-        const newBtcDataBuySet = { ...oldBtcDataSet };
-        newBtcDataBuySet.data.push(value.close);
-
-        const newChartData = {
-          ...this.state.lineChartDataPrice,
-          datasets: [newBtcDataBuySet],
-          labels: this.state.lineChartDataPrice.labels.concat(
-            moment.utc().format('YYYY-MM-DD HH:mm:ss')
-          )
-        };
-        this.setState({ lineChartDataPrice: newChartData });
+        if (moment.utc(value.timestamp).get('minutes') === moment.utc().get('minutes')) {
+          const oldBtcDataSet = this.state.lineChartDataPrice.datasets[0];
+          const newBtcDataBuySet = { ...oldBtcDataSet };
+          newBtcDataBuySet.data.push(value.close);
+          console.log('jjjjjjjjjjjj', value )
+          const newChartData = {
+            ...this.state.lineChartDataPrice,
+            datasets: [newBtcDataBuySet],
+            labels: this.state.lineChartDataPrice.labels.concat(
+              moment.utc().format('YYYY-MM-DD HH:mm:ss')
+            )
+          };
+          this.setState({ lineChartDataPrice: newChartData });
+        }
       }
-    }
-  }
-
-  toggleStopWs = () => {
-    const {
-      stop_ws
-    } = this.state
-    console.log(stop_ws)
-    if (stop_ws) {
-      this.setState({stop_ws: false})
-      this.run_ws_trade_price()
-    } else {
-      this.setState({stop_ws: true})
-      this.ws.close()
     }
   }
 
@@ -115,8 +104,6 @@ class App extends React.Component {
 
     return (
       <div className={classes["chart-container"]}>
-        {this.state.stop_ws && <button className="btn btn-danger" onClick={() => this.toggleStopWs()}>Start</button>}
-        {!this.state.stop_ws && <button className="btn btn-primary" onClick={() => this.toggleStopWs()}>Stop</button>}
         <Chart
           data={this.state.lineChartDataPrice}
           options={this.state.lineChartOptions}
